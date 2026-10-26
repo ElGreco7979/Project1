@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Daily Tasks</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="app">
+    <header class="day-nav">
+      <button id="prev-day" class="icon-btn" aria-label="Previous day">&larr;</button>
+      <div class="day-title">
+        <h1 id="day-label">Today</h1>
+        <p id="day-sub"></p>
+      </div>
+      <button id="next-day" class="icon-btn" aria-label="Next day">&rarr;</button>
+    </header>
+    <button id="go-today" class="link-btn" hidden>Back to today</button>
+
+    <section class="progress" aria-label="Progress">
+      <div class="progress-bar"><div id="progress-fill"></div></div>
+      <span id="progress-text">0 / 0 done</span>
+    </section>
+
+    <form id="task-form" class="task-form">
+      <input id="title" name="title" type="text" placeholder="What do you need to do?" autocomplete="off" required />
+      <div class="form-row">
+        <select id="priority" name="priority" aria-label="Priority">
+          <option value="high">High priority</option>
+          <option value="medium" selected>Medium priority</option>
+          <option value="low">Low priority</option>
+        </select>
+        <select id="repeat" name="repeat" aria-label="Repeat">
+          <option value="none">Just once</option>
+          <option value="daily">Every day</option>
+          <option value="weekdays">Weekdays</option>
+          <option value="weekly">Every week</option>
+        </select>
+        <input id="date" name="date" type="date" aria-label="Date" required />
+      </div>
+      <textarea id="notes" name="notes" rows="2" placeholder="Notes (optional)"></textarea>
+      <div class="form-actions">
+        <button type="button" id="cancel-edit" class="secondary" hidden>Cancel</button>
+        <button type="submit" id="submit-btn">Add task</button>
+      </div>
+    </form>
+
+    <div class="filters" role="tablist">
+      <button class="filter active" data-filter="all">All</button>
+      <button class="filter" data-filter="active">To do</button>
+      <button class="filter" data-filter="done">Done</button>
+    </div>
+
+    <section id="overdue-section" hidden>
+      <h2>Overdue</h2>
+      <ul id="overdue-list" class="task-list"></ul>
+    </section>
+
+    <section>
+      <ul id="task-list" class="task-list"></ul>
+      <p id="empty" class="empty">No tasks for this day. Add one above!</p>
+    </section>
+
+    <footer class="data-actions">
+      <button id="export-btn" class="link-btn">Export</button>
+      <label class="link-btn">Import<input id="import-input" type="file" accept="application/json" hidden /></label>
+    </footer>
+  </main>
+
+  <template id="task-template">
+    <li class="task">
+      <input type="checkbox" class="toggle" />
+      <div class="task-body">
+        <span class="task-title"></span>
+        <div class="task-meta"></div>
+        <p class="task-notes"></p>
+      </div>
+      <div class="task-actions">
+        <button class="icon-btn edit" aria-label="Edit">&#9998;</button>
+        <button class="icon-btn delete" aria-label="Delete">&times;</button>
+      </div>
+    </li>
+  </template>
+
+  <script src="logic.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
