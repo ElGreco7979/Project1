@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Daily Tasks</title>
+  <meta name="theme-color" content="#4f6bed" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Tasks" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="app">
+    <nav class="view-switch" role="tablist" aria-label="View">
+      <button class="view-tab active" data-view="day" role="tab">Day</button>
+      <button class="view-tab" data-view="week" role="tab">Week</button>
+    </nav>
+
+    <header class="day-nav">
+      <button id="prev" class="icon-btn" aria-label="Previous">&larr;</button>
+      <div class="day-title">
+        <h1 id="day-label">Today</h1>
+        <p id="day-sub"></p>
+      </div>
+      <button id="next" class="icon-btn" aria-label="Next">&rarr;</button>
+    </header>
+    <button id="go-today" class="link-btn" hidden>Back to today</button>
+
+    <div id="day-view">
+      <section class="progress" aria-label="Progress">
+        <div class="progress-bar"><div id="progress-fill"></div></div>
+        <span id="progress-text">0 / 0 done</span>
+      </section>
+
+      <form id="task-form" class="task-form">
+        <input id="title" name="title" type="text" placeholder="What do you need to do?" autocomplete="off" required />
+        <div class="form-row">
+          <select id="priority" name="priority" aria-label="Priority">
+            <option value="high">High priority</option>
+            <option value="medium" selected>Medium priority</option>
+            <option value="low">Low priority</option>
+          </select>
+          <select id="repeat" name="repeat" aria-label="Repeat">
+            <option value="none">Just once</option>
+            <option value="daily">Every day</option>
+            <option value="weekdays">Weekdays</option>
+            <option value="weekly">Every week</option>
+          </select>
+          <input id="date" name="date" type="date" aria-label="Date" required />
+        </div>
+        <div class="form-row two">
+          <input id="category" name="category" type="text" list="category-options" placeholder="Category (e.g. Work)" autocomplete="off" aria-label="Category" />
+          <datalist id="category-options"></datalist>
+          <label class="time-field">
+            <span>Remind me at</span>
+            <input id="time" name="time" type="time" aria-label="Reminder time" />
+          </label>
+        </div>
+        <textarea id="notes" name="notes" rows="2" placeholder="Notes (optional)"></textarea>
+        <div class="form-actions">
+          <button type="button" id="cancel-edit" class="secondary" hidden>Cancel</button>
+          <button type="submit" id="submit-btn">Add task</button>
+        </div>
+      </form>
+
+      <div class="filters">
+        <div class="status-filters">
+          <button class="filter active" data-filter="all">All</button>
+          <button class="filter" data-filter="active">To do</button>
+          <button class="filter" data-filter="done">Done</button>
+        </div>
+        <select id="category-filter" aria-label="Filter by category">
+          <option value="">All categories</option>
+        </select>
+      </div>
+
+      <section id="overdue-section" hidden>
+        <h2>Overdue</h2>
+        <ul id="overdue-list" class="task-list"></ul>
+      </section>
+
+      <section>
+        <ul id="task-list" class="task-list"></ul>
+        <p id="empty" class="empty">No tasks for this day. Add one above!</p>
+      </section>
+    </div>
+
+    <div id="week-view" hidden>
+      <section class="card stat">
+        <span id="week-rate" class="stat-number">0%</span>
+        <span id="week-count" class="stat-label">0 of 0 tasks done</span>
+      </section>
+
+      <section class="card">
+        <h3>Completed per day</h3>
+        <div id="week-chart" class="week-chart" role="img"></div>
+      </section>
+
+      <section class="card">
+        <h3>By category</h3>
+        <ul id="category-breakdown" class="breakdown"></ul>
+        <p id="category-empty" class="empty small" hidden>No tasks this week.</p>
+      </section>
+
+      <section class="card">
+        <h3>Habit streaks</h3>
+        <ul id="streak-list" class="breakdown"></ul>
+        <p id="streak-empty" class="empty small" hidden>Add a repeating task to start a streak.</p>
+      </section>
+    </div>
+
+    <footer class="data-actions">
+      <button id="install-btn" class="link-btn" hidden>Install app</button>
+      <button id="notify-btn" class="link-btn" hidden>Enable notifications</button>
+      <button id="export-btn" class="link-btn">Export</button>
+      <label class="link-btn">Import<input id="import-input" type="file" accept="application/json" hidden /></label>
+    </footer>
+  </main>
+
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+
+  <template id="task-template">
+    <li class="task">
+      <input type="checkbox" class="toggle" />
+      <div class="task-body">
+        <span class="task-title"></span>
+        <div class="task-meta"></div>
+        <p class="task-notes"></p>
+      </div>
+      <div class="task-actions">
+        <button class="icon-btn edit" aria-label="Edit">&#9998;</button>
+        <button class="icon-btn delete" aria-label="Delete">&times;</button>
+      </div>
+    </li>
+  </template>
+
+  <script src="logic.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
