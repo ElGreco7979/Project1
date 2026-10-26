@@ -4,6 +4,12 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Daily Tasks</title>
+  <meta name="theme-color" content="#4f6bed" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Tasks" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -107,6 +113,7 @@
     </div>
 
     <footer class="data-actions">
+      <button id="install-btn" class="link-btn" hidden>Install app</button>
       <button id="notify-btn" class="link-btn" hidden>Enable notifications</button>
       <button id="export-btn" class="link-btn">Export</button>
       <label class="link-btn">Import<input id="import-input" type="file" accept="application/json" hidden /></label>

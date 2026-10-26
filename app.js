@@ -355,19 +355,44 @@
     for (const task of due) {
       const message = `⏰ ${task.title}`;
       toast(message);
-      if ("Notification" in window && Notification.permission === "granted") {
-        try {
-          new Notification("Daily Tasks", { body: task.title, tag: `${task.id}@${key}` });
-        } catch {
-          // Some browsers only allow notifications from a service worker; the toast still shows.
-        }
-      }
+      if ("Notification" in window && Notification.permission === "granted") notify(task.title, `${task.id}@${key}`);
       state.notified.add(`${task.id}@${key}`);
     }
     localStorage.setItem(NOTIFIED_KEY, JSON.stringify([...state.notified]));
   }
 
+  // Mobile browsers only allow notifications through the service worker.
+  async function notify(body, tag) {
+    try {
+      const reg = "serviceWorker" in navigator && (await navigator.serviceWorker.getRegistration());
+      if (reg) await reg.showNotification("Daily Tasks", { body, tag, icon: "icons/icon-192.png" });
+      else new Notification("Daily Tasks", { body, tag });
+    } catch {
+      // The in-page toast still shows.
+    }
+  }
+
   $("notify-btn").addEventListener("click", requestNotifications);
+
+  // Installable app: offline support plus an "Install app" button where the browser offers one.
+  if ("serviceWorker" in navigator && location.protocol !== "file:") {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  }
+
+  let installPrompt = null;
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    installPrompt = e;
+    $("install-btn").hidden = false;
+  });
+  $("install-btn").addEventListener("click", async () => {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    await installPrompt.userChoice;
+    installPrompt = null;
+    $("install-btn").hidden = true;
+  });
+  window.addEventListener("appinstalled", () => ($("install-btn").hidden = true));
 
   $("export-btn").addEventListener("click", () => {
     const blob = new Blob([JSON.stringify(state.tasks, null, 2)], { type: "application/json" });
