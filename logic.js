@@ -21,11 +21,12 @@
     return toKey(date);
   }
 
-  function createTask({ title, notes = "", priority = "medium", date, repeat = "none" }, id) {
+  function createTask({ title, notes = "", priority = "medium", date, repeat = "none", category = "", time = "" }, id) {
     const trimmed = (title || "").trim();
     if (!trimmed) throw new Error("Task title is required");
     if (!REPEATS.includes(repeat)) throw new Error(`Unknown repeat: ${repeat}`);
     if (!(priority in PRIORITY_ORDER)) throw new Error(`Unknown priority: ${priority}`);
+    if (time && !/^\d{2}:\d{2}$/.test(time)) throw new Error(`Invalid time: ${time}`);
     return {
       id: id || Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
       title: trimmed,
@@ -33,6 +34,8 @@
       priority,
       date,
       repeat,
+      category: category.trim(),
+      time,
       completedOn: {},
       createdAt: new Date().toISOString(),
     };
@@ -72,6 +75,8 @@
       (a, b) =>
         isDone(a, key) - isDone(b, key) ||
         PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority] ||
+        // Timed tasks first, earliest first.
+        (a.time || "99:99").localeCompare(b.time || "99:99") ||
         a.createdAt.localeCompare(b.createdAt)
     );
   }
@@ -103,7 +108,45 @@
     return count;
   }
 
-  const api = { REPEATS, toKey, fromKey, addDays, createTask, occursOn, isDone, toggle, tasksForDay, overdue, streak };
+  function categories(tasks) {
+    return [...new Set(tasks.map((t) => t.category).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  }
+
+  // Monday of the week containing the given day.
+  function weekStart(key) {
+    return addDays(key, -((fromKey(key).getDay() + 6) % 7));
+  }
+
+  function weekSummary(tasks, key) {
+    const start = weekStart(key);
+    const days = [];
+    const byCategory = {};
+    for (let i = 0; i < 7; i++) {
+      const day = addDays(start, i);
+      const dayTasks = tasks.filter((t) => occursOn(t, day));
+      const done = dayTasks.filter((t) => isDone(t, day)).length;
+      days.push({ key: day, total: dayTasks.length, done });
+      for (const t of dayTasks) {
+        const c = (byCategory[t.category || "Uncategorized"] ||= { total: 0, done: 0 });
+        c.total++;
+        if (isDone(t, day)) c.done++;
+      }
+    }
+    const total = days.reduce((n, d) => n + d.total, 0);
+    const done = days.reduce((n, d) => n + d.done, 0);
+    return { start, end: addDays(start, 6), days, total, done, byCategory };
+  }
+
+  // Timed tasks for today whose time has come, that are unfinished and
+  // haven't been announced yet (`notified` holds "id@day" strings).
+  function dueReminders(tasks, key, nowTime, notified) {
+    return tasks.filter(
+      (t) => t.time && t.time <= nowTime && occursOn(t, key) && !isDone(t, key) && !notified.has(`${t.id}@${key}`)
+    );
+  }
+
+  const api = { REPEATS, toKey, fromKey, addDays, createTask, occursOn, isDone, toggle, tasksForDay, overdue, streak,
+    categories, weekStart, weekSummary, dueReminders };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.TaskLogic = api;
 })(this);

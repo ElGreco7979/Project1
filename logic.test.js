@@ -61,3 +61,45 @@ test("streak counts consecutive completed occurrences", () => {
   for (const d of ["2026-10-22", "2026-10-23", "2026-10-26"]) w = L.toggle(w, d);
   assert.strictEqual(L.streak(w, "2026-10-26"), 3); // weekend is skipped
 });
+
+test("createTask stores category and validates time", () => {
+  const t = task({ category: " Work ", time: "09:30" });
+  assert.strictEqual(t.category, "Work");
+  assert.strictEqual(t.time, "09:30");
+  assert.throws(() => task({ time: "9am" }));
+});
+
+test("categories lists distinct non-empty names alphabetically", () => {
+  const ts = [task({ category: "Work" }), task({ category: "Home" }), task({ category: "Work" }), task()];
+  assert.deepStrictEqual(L.categories(ts), ["Home", "Work"]);
+});
+
+test("timed tasks sort earliest first within a priority", () => {
+  const ts = [task({ title: "none" }), task({ title: "late", time: "18:00" }), task({ title: "early", time: "07:00" })];
+  assert.deepStrictEqual(L.tasksForDay(ts, "2026-10-26").map((t) => t.title), ["early", "late", "none"]);
+});
+
+test("weekSummary covers Monday to Sunday", () => {
+  assert.strictEqual(L.weekStart("2026-11-01"), "2026-10-26"); // Sunday -> Monday
+  let gym = task({ repeat: "daily", category: "Health" });
+  gym = L.toggle(L.toggle(gym, "2026-10-26"), "2026-10-27");
+  const once = task({ date: "2026-10-28" });
+  const s = L.weekSummary([gym, once], "2026-10-29");
+  assert.strictEqual(s.start, "2026-10-26");
+  assert.strictEqual(s.end, "2026-11-01");
+  assert.strictEqual(s.total, 8);
+  assert.strictEqual(s.done, 2);
+  assert.deepStrictEqual(s.days[2], { key: "2026-10-28", total: 2, done: 0 });
+  assert.deepStrictEqual(s.byCategory, { Health: { total: 7, done: 2 }, Uncategorized: { total: 1, done: 0 } });
+});
+
+test("dueReminders returns unfinished, unannounced tasks whose time has passed", () => {
+  const a = task({ time: "08:00" });
+  const b = task({ time: "12:00" });
+  const c = L.toggle(task({ time: "07:00" }), "2026-10-26");
+  const d = task();
+  const notified = new Set();
+  assert.deepStrictEqual(L.dueReminders([a, b, c, d], "2026-10-26", "09:00", notified), [a]);
+  notified.add(`${a.id}@2026-10-26`);
+  assert.deepStrictEqual(L.dueReminders([a, b, c, d], "2026-10-26", "12:00", notified), [b]);
+});
