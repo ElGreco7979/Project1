@@ -18,12 +18,13 @@ def collect(cfg: dict, today: date) -> tuple[list[Deal], list[str]]:
     s = cfg["search"]
     origin, max_price, currency = s["origin"].upper(), float(s["max_price"]), s["currency"].upper()
     start, end = today + timedelta(days=1), today + timedelta(days=int(s["days_ahead"]))
+    nights = (int(s.get("min_nights", 2)), int(s.get("max_nights", 14))) if s.get("round_trip", True) else None
     providers = cfg.get("providers", {})
     deals, errors = [], []
 
     if providers.get("ryanair", True):
         try:
-            deals += ryanair.fetch(origin, max_price, currency, start, end)
+            deals += ryanair.fetch(origin, max_price, currency, start, end, nights)
         except Exception as e:  # one provider failing shouldn't stop the others
             errors.append(f"Ryanair: {e}")
     if providers.get("travelpayouts", True):
@@ -32,7 +33,7 @@ def collect(cfg: dict, today: date) -> tuple[list[Deal], list[str]]:
             print("TRAVELPAYOUTS_TOKEN not set; skipping Travelpayouts (only Ryanair fares will be checked).")
         else:
             try:
-                deals += travelpayouts.fetch(origin, max_price, currency, start, end, token)
+                deals += travelpayouts.fetch(origin, max_price, currency, start, end, token, nights)
             except Exception as e:
                 errors.append(f"Travelpayouts: {e}")
 
@@ -46,7 +47,7 @@ def dedupe(deals: list[Deal]) -> list[Deal]:
     """The same flight can come from several providers; keep the cheapest."""
     best: dict[tuple, Deal] = {}
     for d in deals:
-        k = (d.destination, d.departure.strftime("%Y-%m-%dT%H:%M"))
+        k = (d.destination, d.departure.strftime("%Y-%m-%dT%H:%M"), d.return_departure)
         if k not in best or d.price < best[k].price:
             best[k] = d
     return list(best.values())

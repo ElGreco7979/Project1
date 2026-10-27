@@ -1,6 +1,7 @@
 # Flight alerts from Larnaca ✈️
 
-Checks for one-way flights **from Larnaca (LCA) under 100 €** and sends you an alert by
+Checks for **round trips from Larnaca (LCA) costing under 100 € in total** (staying 2–14 nights)
+and sends you an alert by
 **Telegram** and/or **email**. Deals in **Europe are listed first**, then every other country.
 You're only alerted about a flight once — again only if its price drops by another 5 €.
 
@@ -40,7 +41,8 @@ days old — always confirm the price on the booking link before buying.
 ## Settings
 
 Edit [`config.toml`](config.toml): origin airport, price limit, how many days ahead to search
-(default 90), `europe_only` to drop non-European destinations, and re-alert/message-size limits.
+(default 90), round trip vs. one-way and the length of stay (`min_nights` / `max_nights`),
+`europe_only` to drop non-European destinations, and re-alert/message-size limits.
 To change how often it runs, edit the `cron` line in `.github/workflows/flight-alerts.yml`.
 
 ## Run locally

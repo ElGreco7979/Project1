@@ -20,6 +20,8 @@ def group(deals: list[Deal]) -> list[tuple[str, list[Deal]]]:
 
 def line(d: Deal, as_html: bool) -> str:
     when = d.departure.strftime("%a %d %b %H:%M")
+    if d.return_departure:
+        when += f" → {d.return_departure.strftime('%a %d %b %H:%M')} ({d.nights} night{'s' if d.nights != 1 else ''})"
     place = f"{d.destination_name} ({d.destination}), {country_name(d.country_code)}"
     price = f"{d.price:.0f} {d.currency}" if d.price == int(d.price) else f"{d.price:.2f} {d.currency}"
     carrier = d.airline or d.provider
@@ -31,7 +33,8 @@ def line(d: Deal, as_html: bool) -> str:
 
 def render(deals: list[Deal], origin: str, max_price: float, currency: str, as_html: bool) -> list[str]:
     """Returns the message split into chunks that fit in one Telegram message."""
-    header = f"✈️ {len(deals)} new flight deal{'s' if len(deals) != 1 else ''} from {origin} under {max_price:g} {currency}"
+    kind = "round trip" if any(d.return_departure for d in deals) else "flight"
+    header = f"✈️ {len(deals)} new {kind} deal{'s' if len(deals) != 1 else ''} from {origin} under {max_price:g} {currency}"
     lines = [f"<b>{html.escape(header)}</b>" if as_html else header]
     for title, items in group(deals):
         lines.append("")

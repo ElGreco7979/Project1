@@ -30,6 +30,18 @@ RYANAIR_SAMPLE = {
 }
 
 
+ROUND_TRIP_SAMPLE = {
+    "fares": [
+        {
+            "outbound": {**RYANAIR_SAMPLE["fares"][0]["outbound"], "price": {"value": 30, "currencyCode": "EUR"}},
+            "inbound": {"departureDate": "2026-11-14T09:10:00", "flightNumber": "FR1235",
+                        "price": {"value": 25.5, "currencyCode": "EUR"}},
+            "summary": {"price": {"value": 55.5, "currencyCode": "EUR"}},
+        }
+    ]
+}
+
+
 def deal(dest="ATH", country="GR", price=50.0, day=10, **kw):
     return Deal(
         provider="Test", origin="LCA", destination=dest, destination_name=dest, country_code=country,
@@ -42,6 +54,25 @@ class RyanairTest(unittest.TestCase):
         [d] = ryanair.parse(RYANAIR_SAMPLE, "LCA")
         self.assertEqual((d.destination, d.country_code, d.price), ("ATH", "GR", 19.99))
         self.assertIn("destinationIata=ATH", d.link)
+
+    def test_parse_round_trip(self):
+        [d] = ryanair.parse(ROUND_TRIP_SAMPLE, "LCA")
+        self.assertEqual((d.price, d.nights, d.flight_number), (55.5, 4, "FR1234/FR1235"))
+        self.assertIn("isReturn=true", d.link)
+        self.assertIn("dateIn=2026-11-14", d.link)
+
+    def test_round_trip_price_falls_back_to_legs(self):
+        fare = {**ROUND_TRIP_SAMPLE["fares"][0], "summary": {}}
+        self.assertEqual(ryanair.total_price(fare), 55.5)
+
+    def test_round_trip_request(self):
+        calls = []
+        ryanair.fetch("LCA", 100, "EUR", date(2026, 11, 1), date(2026, 11, 7), nights=(2, 14),
+                      get_json=lambda url, params: calls.append((url, params)) or {"fares": []})
+        [(url, params)] = calls
+        self.assertEqual(url, ryanair.ROUND_TRIP_URL)
+        self.assertEqual((params["inboundDepartureDateFrom"], params["inboundDepartureDateTo"]), ("2026-11-03", "2026-11-21"))
+        self.assertEqual((params["durationFrom"], params["durationTo"]), (2, 14))
 
     def test_country_from_name_when_code_missing(self):
         sample = {"fares": [{"outbound": {**RYANAIR_SAMPLE["fares"][0]["outbound"],
@@ -84,6 +115,28 @@ class TravelpayoutsTest(unittest.TestCase):
         self.assertEqual((d.destination_name, d.country_code, d.airline, d.flight_number), ("Budapest", "HU", "Wizz Air", "W62312"))
         self.assertEqual(d.link, "https://www.aviasales.com/search/LCA1211BUD1")
 
+    def test_round_trip_filters_stay_length(self):
+        rows = {"data": [
+            {"destination": "BUD", "price": 80, "departure_at": "2026-11-12T13:05:00+02:00",
+             "return_at": "2026-11-16T10:00:00+01:00", "transfers": 0, "return_transfers": 1},
+            {"destination": "BUD", "price": 70, "departure_at": "2026-11-12T13:05:00+02:00",
+             "return_at": "2026-12-20T10:00:00+01:00"},  # 38 nights: too long
+            {"destination": "BUD", "price": 60, "departure_at": "2026-11-12T13:05:00+02:00"},  # no return
+        ]}
+        deals = travelpayouts.parse(rows, "LCA", "EUR", {}, {}, 100, date(2026, 11, 1), date(2026, 12, 31), (2, 14))
+        [d] = deals
+        self.assertEqual((d.price, d.nights, d.destination_name), (80, 4, "BUD (1 stop)"))
+
+    def test_round_trip_request(self):
+        self.requested = []
+        params = []
+        def get(url, p=None):
+            if p:
+                params.append(p)
+            return self.fake_get(url, p)
+        travelpayouts.fetch("LCA", 100, "EUR", date(2026, 11, 1), date(2026, 11, 30), "tok", (2, 14), get_json=get)
+        self.assertEqual(params[0]["one_way"], "false")
+
     def test_months_across_year(self):
         self.assertEqual(travelpayouts.months_between(date(2026, 11, 28), date(2027, 1, 2)), ["2026-11", "2026-12", "2027-01"])
 
@@ -103,6 +156,17 @@ class LogicTest(unittest.TestCase):
         chunks = notify.render(deals, "LCA", 100, "EUR", as_html=True)
         self.assertGreater(len(chunks), 1)
         self.assertTrue(all(len(c) <= 4096 for c in chunks))
+
+    def test_render_round_trip(self):
+        d = deal(return_departure=datetime(2026, 11, 14, 9, 0))
+        text = notify.render([d], "LCA", 100, "EUR", as_html=False)[0]
+        self.assertIn("new round trip deal from LCA", text)
+        self.assertIn("Tue 10 Nov 08:00 → Sat 14 Nov 09:00 (4 nights)", text)
+
+    def test_dedupe_keeps_different_return_dates(self):
+        a = deal(return_departure=datetime(2026, 11, 14))
+        b = deal(return_departure=datetime(2026, 11, 17))
+        self.assertEqual(len(dedupe([a, b])), 2)
 
     def test_seen_store(self):
         with tempfile.TemporaryDirectory() as tmp:
