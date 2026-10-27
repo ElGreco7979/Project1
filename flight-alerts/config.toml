@@ -1,0 +1,24 @@
+# Flight alert settings. Secrets (tokens, passwords) go in environment variables, not here.
+
+[search]
+origin = "LCA"          # Larnaca
+max_price = 100         # alert when the total round-trip fare is strictly below this
+currency = "EUR"
+days_ahead = 90         # how far into the future the outbound flight can be
+round_trip = true       # false = one-way fares
+min_nights = 2          # round trips: shortest stay
+max_nights = 14         # round trips: longest stay
+europe_only = false     # true = ignore destinations outside Europe
+
+[providers]
+# Ryanair's public fare finder: no account needed.
+ryanair = true
+# Travelpayouts / Aviasales data: covers almost every airline (Wizz Air, Aegean,
+# Cyprus Airways, ...) and every country. Needs a free token in TRAVELPAYOUTS_TOKEN.
+travelpayouts = true
+
+[alerts]
+# Re-alert for a flight you were already told about only if it gets this much cheaper.
+realert_drop = 5
+# Most deals listed in one message (Europe first, then the rest of the world).
+max_per_message = 40
