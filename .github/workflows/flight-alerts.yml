@@ -1,0 +1,43 @@
+name: Flight alerts
+
+on:
+  schedule:
+    - cron: "17 5,11,17 * * *"   # three times a day (UTC)
+  workflow_dispatch:             # "Run workflow" button for a manual check
+
+concurrency: flight-alerts
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: flight-alerts
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Remembers which deals were already sent, so you only get new or cheaper ones.
+      - uses: actions/cache/restore@v4
+        with:
+          path: flight-alerts/state
+          key: flight-alerts-state-${{ github.run_id }}
+          restore-keys: flight-alerts-state-
+
+      - run: python -m unittest discover -s tests
+      - run: python -m flight_alerts
+        env:
+          TRAVELPAYOUTS_TOKEN: ${{ secrets.TRAVELPAYOUTS_TOKEN }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: flight-alerts/state
+          key: flight-alerts-state-${{ github.run_id }}

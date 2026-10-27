@@ -46,3 +46,7 @@ To try it locally: `python3 -m http.server` and open <http://localhost:8000>.
 ```sh
 node --test
 ```
+
+---
+
+Also in this repo: **[flight-alerts/](flight-alerts/)** – alerts for cheap flights from Larnaca.
